@@ -16,7 +16,7 @@ Timeroasting
 
 ![Timeroasting example screenshot](img1.png)
 
-Timeroasting takes advantage of the Windows' NTP authentication mechanism, allowing unauthenticated attackers to effectively request a password hash of any computer account by sending an NTP request with that account's RID. This is not a problem when computer accounts are properly generated, but if a non-standard or legacy default password is set this tool allows you to brute-force those offline.
+Timeroasting takes advantage of Windows' NTP authentication mechanism, allowing unauthenticated attackers to effectively request a password hash of any computer account by sending an NTP request with that account's RID. This is not a problem when computer accounts are properly generated, but if a non-standard or legacy default password is set this tool allows you to brute-force those offline.
 
 Two scripts are included:
 
@@ -31,6 +31,6 @@ Trustroasting
 
 ![Example screenshot of kirbi_to_hashcat.py](img2.png)
 
-I currently have not implemented a convenient `trustroast.py` script that will automatically enumerate trusts and fetch tickets. However, this can easily be achieved with [Rubeus](https://github.com/GhostPack/Rubeus) in the way described in the blog post. I did add a simple script which converts Rubeus' output format into something you can slot into Hashcat:
+I currently have not implemented a convenient `trustroast.py` script that will automatically enumerate trusts and fetch tickets. However, this can easily be achieved with [Rubeus](https://github.com/GhostPack/Rubeus) in the way described in the whitepaper. I did add a simple script which converts Rubeus' output format into something you can slot into Hashcat:
 
 - `kirbi_to_hashcat.py`: converts a Kerberos ticket (referal/trust, service, ticket-granting, etc.) that is encoded as a base64 KRB_CRED structure into a Hashcat format. Hash types 13100, 19600, 19700 (i.e. RC-4 and AES tickets) are supported.
