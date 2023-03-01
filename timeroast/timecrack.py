@@ -11,9 +11,18 @@ from binascii import hexlify, unhexlify
 from argparse import ArgumentParser, FileType, RawDescriptionHelpFormatter
 import hashlib, sys
 
+def md4(data):
+  try:
+    return hashlib.new('md4', data).digest()
+  except ValueError:
+    # Use pure-Python implementation by James Seo in case local OpenSSL does not support MD4.
+    from md4 import MD4
+    return MD4(data).bytes()
+
 def compute_hash(password, salt):
   """Compute a legacy NTP authenticator 'hash'."""
-  return hashlib.md5(hashlib.new('md4', password.encode('utf-16le')).digest() + salt).digest()
+  return hashlib.md5(md4(password.encode('utf-16le')) + salt).digest()
+    
 
 def try_crack(hashfile, dictfile):
   # Try each dictionary entry for each hash. dictfile is read iteratively while hashfile is stored in RAM.

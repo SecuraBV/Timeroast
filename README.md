@@ -7,7 +7,7 @@ How to run
 ----------
 
 Both scripts require Python 3.6 or higher. No installation is required. The Timeroasting scripts have no further 
-dependencies and the Trustroast scripts solely depends on [Impact](https://github.com/fortra/impacket).
+dependencies and the Trustroast scripts solely depends on [Impacket](https://github.com/fortra/impacket).
 
 Run each script with `-h` for usage instructions.
 
@@ -33,4 +33,4 @@ Trustroasting
 
 I currently have not implemented a convenient `trustroast.py` script that will automatically enumerate trusts and fetch tickets. However, this can easily be achieved with [Rubeus](https://github.com/GhostPack/Rubeus) in the way described in the blog post. I did add a simple script which converts Rubeus' output format into something you can slot into Hashcat:
 
-- `kirbi_to_hashcat.py`: converts a Kerberos ticket (referall/trust, service, ticket-granting, etc.) that is encoded as a base64 KRB_CRED structure into a Hashcat format. Hash types 13100, 19600, 19700 (RC-4 and AES tickets) are supported.
+- `kirbi_to_hashcat.py`: converts a Kerberos ticket (referal/trust, service, ticket-granting, etc.) that is encoded as a base64 KRB_CRED structure into a Hashcat format. Hash types 13100, 19600, 19700 (i.e. RC-4 and AES tickets) are supported.
