@@ -1,7 +1,7 @@
 Timeroast and Trustroast scripts
 ================================
 
-Python scripts accompanying the blog post _Timeroasting, trustroasting and computer spraying: taking advantage of weak computer and trust account passwords in Active Directory_. These support the _timeroasting_ and _trustroasting_ attack techniques by discovering weak computer or trust passwords within an Active Directory domain.
+Python scripts accompanying the whitepaper [Timeroasting, trustroasting and computer spraying: taking advantage of weak computer and trust account passwords in Active Directory](https://www.secura.com/uploads/whitepapers/Secura-WP-Timeroasting-v3.pdf). These support the _timeroasting_ and _trustroasting_ attack techniques by discovering weak computer or trust passwords within an Active Directory domain.
 
 How to run
 ----------
