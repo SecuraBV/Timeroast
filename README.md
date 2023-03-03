@@ -23,7 +23,7 @@ Two scripts are included:
 - `timeroast.py`: given a DC domain name or IP, will attempt to get 'NTP hashes' of the computer accounts in the domain by enumerating RID's. Requires root privileges in order to be able to receive NTP responses.
 - `timecrack.py`: performs a simple, unoptimized, dictionary attack on the results of `timeroast.py`. 
 
-I am currently looking at getting support for Timeroasted hashes into an optimized hash cracking tool. If that succeeds, I will add support for that tool's input format and `timecrack.py` will become obsolete.
+Hashcat [will add support for Timeroasting hashes](https://github.com/hashcat/hashcat/issues/3629) as hash type 31300. Currently, it's already available in the (beta release)[https://hashcat.net/beta/].
 
 
 Trustroasting
