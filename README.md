@@ -1,13 +1,13 @@
-Timeroast and Trustroast scripts
-================================
+Timeroast scripts
+=================
 
-Python scripts accompanying the whitepaper [Timeroasting, trustroasting and computer spraying: taking advantage of weak computer and trust account passwords in Active Directory](https://www.secura.com/uploads/whitepapers/Secura-WP-Timeroasting-v3.pdf). These support the _timeroasting_ and _trustroasting_ attack techniques by discovering weak computer or trust passwords within an Active Directory domain.
+Python scripts accompanying the whitepaper [Timeroasting, trustroasting and computer spraying: taking advantage of weak computer and trust account passwords in Active Directory](https://www.secura.com/uploads/whitepapers/Secura-WP-Timeroasting-v3.pdf). These support the _timeroasting_ attack technique, which abuses the NTP protocol in order to extract password hashes for computer and trust accounts from a domain controller, which can then be attempted to be cracked offline. It turns out it is not uncommon for such accounts to have bad (default) passwords instead of the frequently rotated random passwords that are normally used, making password cracking possible in those cases.
 
 How to run
 ----------
 
 Both scripts require Python 3.6 or higher. No installation is required. The Timeroasting scripts have no further 
-dependencies and the Trustroast scripts solely depends on [Impacket](https://github.com/fortra/impacket).
+dependencies. The `kirbi_to_hashcat.py` solely depends on [Impacket](https://github.com/fortra/impacket).
 
 Run each script with `-h` for usage instructions.
 
@@ -16,21 +16,33 @@ Timeroasting
 
 ![Timeroasting example screenshot](img1.png)
 
-Timeroasting takes advantage of Windows' NTP authentication mechanism, allowing unauthenticated attackers to effectively request a password hash of any computer account by sending an NTP request with that account's RID. This is not a problem when computer accounts are properly generated, but if a non-standard or legacy default password is set this tool allows you to brute-force those offline.
+Timeroasting takes advantage of Windows' NTP authentication mechanism, allowing unauthenticated attackers to effectively request a password hash of any computer or trust account by sending an NTP request with that account's RID. This is not a problem when computer accounts are properly generated, but if a non-standard or legacy default password is set this tool allows you to brute-force those offline.
 
 Two scripts are included:
 
-- `timeroast.py`: given a DC domain name or IP, will attempt to get 'NTP hashes' of the computer accounts in the domain by enumerating RID's. Requires root privileges in order to be able to receive NTP responses.
-- `timecrack.py`: performs a simple, unoptimized, dictionary attack on the results of `timeroast.py`. 
+- `timeroast/timeroast.py`: given a DC domain name or IP, will attempt to get 'NTP hashes' of the computer/trust accounts in the domain by enumerating RID's. Requires root privileges in order to be able to receive NTP responses. Requires root in order to be able to listen on port 123.
+- `timeroast/timecrack.py`: performs a simple, unoptimized, dictionary attack on the results of `timeroast.py`. 
 
-Hashcat [will add support for Timeroasting hashes](https://github.com/hashcat/hashcat/issues/3629) as hash type 31300. Currently, it's already available in the [beta release](https://hashcat.net/beta/).
+Hashcat [will add support for Timeroast hashes](https://github.com/hashcat/hashcat/issues/3629) as hash type 31300. Currently, it's already available in the [beta release](https://hashcat.net/beta/).
 
 
-Trustroasting
--------------
+Alternative ways to abuse weak 'dollar account' passwords
+---------------------------------------------------------
 
-![Example screenshot of kirbi_to_hashcat.py](img2.png)
+If Timeroasting (e.g. when you can't listen on privileged ports) is not possible, there are some alternative attacks that can be used to identity and compromise computer or trust accounts with weak passwords. These are described in detail in 
+[the whitepaper](https://www.secura.com/uploads/whitepapers/Secura-WP-Timeroasting-v3.pdf). To summarize, these attacks 
+work as follows:
 
-I currently have not implemented a convenient `trustroast.py` script that will automatically enumerate trusts and fetch tickets. However, this can easily be achieved with [Rubeus](https://github.com/GhostPack/Rubeus) in the way described in the whitepaper. I did add a simple script which converts Rubeus' output format into something you can slot into Hashcat:
+1. _computer spraying_: perform a password spray for computer accounts, where you try a legacy NT password (up to first 14 characters of the computer name, lowercased, without the dollar sign) for each computer account.
+2. _extended kerberoasting_: adjust a Kerberoasting tool to also fetch computer and trust tickets. Requires an AD account.
+3. _trustroasting_: obtain a trust ticket through a regular Kerberos referal, and brute-force the password used to encrypt it. Requires an AD account.
 
-- `kirbi_to_hashcat.py`: converts a Kerberos ticket (referal/trust, service, ticket-granting, etc.) that is encoded as a base64 KRB_CRED structure into a Hashcat format. Hash types 13100, 19600, 19700 (i.e. RC-4 and AES tickets) are supported.
+Computer spraying and Kerberoasting can easily be carried out with existing tools. I currently have not implemented a convenient `trustroast.py` script that will automatically enumerate trusts and fetch tickets. However, this can easily be achieved with [Rubeus](https://github.com/GhostPack/Rubeus) in the way described in the whitepaper. However, I did add a simple script which converts Rubeus' output format into something you can slot into Hashcat:
+
+- `trustroast/kirbi_to_hashcat.py`: converts a Kerberos ticket (referal/trust, service, ticket-granting, etc.) that is encoded as a base64 KRB_CRED structure into Hashcat format. Hash types 13100, 19600, 19700 (i.e. RC-4 and AES tickets) are supported.
+
+
+Notes
+-----
+
+Thanks to [Garret Foster](https://www.optiv.com/blog/author/garrett-foster) for pointing out that Timeroasting can also be used to crack trust account hashes.
