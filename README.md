@@ -20,7 +20,7 @@ Timeroasting takes advantage of Windows' NTP authentication mechanism, allowing 
 
 Two scripts are included:
 
-- `timeroast/timeroast.py`: given a DC domain name or IP, will attempt to get 'NTP hashes' of the computer/trust accounts in the domain by enumerating RID's. Requires root privileges in order to be able to receive NTP responses. Requires root in order to be able to listen on port 123.
+- `timeroast/timeroast.py`: given a DC domain name or IP, will attempt to get 'NTP hashes' of the computer/trust accounts in the domain by enumerating RID's.
 - `timeroast/timecrack.py`: performs a simple, unoptimized, dictionary attack on the results of `timeroast.py`. 
 
 Hashcat [will add support for Timeroast hashes](https://github.com/hashcat/hashcat/issues/3629) as hash type 31300. Currently, it's already available in the [beta release](https://hashcat.net/beta/).
@@ -29,7 +29,7 @@ Hashcat [will add support for Timeroast hashes](https://github.com/hashcat/hashc
 Alternative ways to abuse weak 'dollar account' passwords
 ---------------------------------------------------------
 
-If Timeroasting (e.g. when you can't listen on privileged ports) is not possible, there are some alternative attacks that can be used to identity and compromise computer or trust accounts with weak passwords. These are described in detail in 
+If Timeroasting is not possible or desirable, there are some alternative attacks that can be used to identity and compromise computer or trust accounts with weak passwords. These are described in detail in 
 [the whitepaper](https://www.secura.com/uploads/whitepapers/Secura-WP-Timeroasting-v3.pdf). To summarize, these attacks 
 work as follows:
 

