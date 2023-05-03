@@ -100,9 +100,9 @@ listen privileges) is needed.
           ranges.append(range(int(start), int(end) + 1))
         else:
           assert 0 <= int(part) < 2**31
-          ranges.append(int(part))
+          ranges.append([int(part)])
 
-      return chain(ranges)
+      return chain(*ranges)
     except:
       raise ArgumentTypeError(f'Invalid number ranges: "{arg}".')
 
@@ -144,7 +144,7 @@ listen privileges) is needed.
   # Required arguments.
   argparser.add_argument(
     'dc',
-    help='Hostname or IP address of domain controller that acts as NTP server.'
+    help='Hostname or IP address of a domain controller that acts as NTP server.'
   )
 
   return argparser.parse_args()

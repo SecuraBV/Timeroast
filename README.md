@@ -7,7 +7,7 @@ How to run
 ----------
 
 Both scripts require Python 3.6 or higher. No installation is required. The Timeroasting scripts have no further 
-dependencies. The `kirbi_to_hashcat.py` solely depends on [Impacket](https://github.com/fortra/impacket).
+dependencies. The `kirbi_to_hashcat.py` script solely depends on [Impacket](https://github.com/fortra/impacket).
 
 Run each script with `-h` for usage instructions.
 
