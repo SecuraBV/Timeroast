@@ -1,27 +1,30 @@
 Timeroast scripts
 =================
 
-Python scripts accompanying the whitepaper [Timeroasting, trustroasting and computer spraying: taking advantage of weak computer and trust account passwords in Active Directory](https://www.secura.com/uploads/whitepapers/Secura-WP-Timeroasting-v3.pdf). These support the _timeroasting_ attack technique, which abuses the NTP protocol in order to extract password hashes for computer and trust accounts from a domain controller, which can then be attempted to be cracked offline. It turns out it is not uncommon for such accounts to have bad (default) passwords instead of the frequently rotated random passwords that are normally used, making password cracking possible in those cases.
+Python and Powershell scripts accompanying the whitepaper [Timeroasting, trustroasting and computer spraying: taking advantage of weak computer and trust account passwords in Active Directory](https://www.secura.com/uploads/whitepapers/Secura-WP-Timeroasting-v3.pdf). These support the _timeroasting_ attack technique, which abuses the NTP protocol in order to extract password hashes for computer and trust accounts from a domain controller, which can then be attempted to be cracked offline. It turns out it is not uncommon for such accounts to have bad (default) passwords instead of the frequently rotated random passwords that are normally used, making password cracking possible in those cases.
 
 How to run
 ----------
 
-Both scripts require Python 3.6 or higher. No installation is required. The Timeroasting scripts have no further 
-dependencies. The `kirbi_to_hashcat.py` script solely depends on [Impacket](https://github.com/fortra/impacket).
+Both the Python (`timeroast.py`) and Powershell (`timeroast.ps1`) scripts should run standalone with no need to install
+any dependencies. The Python script requires Python 3.6.
 
-Run each script with `-h` for usage instructions.
+The `extra-scripts/kirbi_to_hashcat.py` script solely depends on [Impacket](https://github.com/fortra/impacket).
+
+Execute `python timeroast.py -h` or `powershell timeroast.ps1 -?` for usage instructions.
 
 Timeroasting
 ------------
 
-![Timeroasting example screenshot](img1.png)
+![Timeroasting example screenshot](screenshot.png)
 
 Timeroasting takes advantage of Windows' NTP authentication mechanism, allowing unauthenticated attackers to effectively request a password hash of any computer or trust account by sending an NTP request with that account's RID. This is not a problem when computer accounts are properly generated, but if a non-standard or legacy default password is set this tool allows you to brute-force those offline.
 
-Two scripts are included:
+Three scripts are included:
 
-- `timeroast/timeroast.py`: given a DC domain name or IP, will attempt to get 'NTP hashes' of the computer/trust accounts in the domain by enumerating RID's.
-- `timeroast/timecrack.py`: performs a simple, unoptimized, dictionary attack on the results of `timeroast.py`. 
+- `timeroast.py`: given a DC domain name or IP, will attempt to get 'NTP hashes' of the computer/trust accounts in the domain by enumerating RID's.
+- `timeroast.ps1`: Powershell port of the same script.
+- `extra-scripts/timecrack.py`: performs a simple, unoptimized, dictionary attack on the results of `timeroast.py` or `timeroast.ps1`. 
 
 Hashcat [will add support for Timeroast hashes](https://github.com/hashcat/hashcat/issues/3629) as hash type 31300. Currently, it's already available in the [beta release](https://hashcat.net/beta/).
 
@@ -39,10 +42,14 @@ work as follows:
 
 Computer spraying and Kerberoasting can easily be carried out with existing tools. I currently have not implemented a convenient `trustroast.py` script that will automatically enumerate trusts and fetch tickets. However, this can easily be achieved with [Rubeus](https://github.com/GhostPack/Rubeus) in the way described in the whitepaper. However, I did add a simple script which converts Rubeus' output format into something you can slot into Hashcat:
 
-- `trustroast/kirbi_to_hashcat.py`: converts a Kerberos ticket (referal/trust, service, ticket-granting, etc.) that is encoded as a base64 KRB_CRED structure into Hashcat format. Hash types 13100, 19600, 19700 (i.e. RC-4 and AES tickets) are supported.
+- `extra-scripts/kirbi_to_hashcat.py`: converts a Kerberos ticket (referal/trust, service, ticket-granting, etc.) that is encoded as a base64 KRB_CRED structure into Hashcat format. Hash types 13100, 19600, 19700 (i.e. RC-4 and AES tickets) are supported.
 
 
-Notes
------
+Credits
+-------
 
-Thanks to [Garret Foster](https://www.optiv.com/blog/author/garrett-foster) for pointing out that Timeroasting can also be used to crack trust account hashes.
+The attack and original script were developed by Tom Tervoort of Secura BV.
+
+The Powershell port was contributed by [Jacopo Scannella](https://github.com/antipatico).
+
+Special thanks to [Garret Foster](https://www.optiv.com/blog/author/garrett-foster) for pointing out that Timeroasting can also be used to obtain trust account hashes.
