@@ -99,7 +99,7 @@ for ($queryRid = $minRID; (Get-Date) -lt $timeoutTime; $queryRid++) {
             if ($outputFile) {
                 $hashcatHash | Out-File -Append -FilePath $outputFile
             } else {
-                Write-Host $hashcatHash
+                Write-Output $hashcatHash
             }
             
             # Succesfull receive. Update total timeout.
