@@ -16,8 +16,6 @@ Execute `python timeroast.py -h` or `powershell timeroast.ps1 -?` for usage inst
 Timeroasting
 ------------
 
-![Timeroasting example screenshot](screenshot.png)
-
 Timeroasting takes advantage of Windows' NTP authentication mechanism, allowing unauthenticated attackers to effectively request a password hash of any computer or trust account by sending an NTP request with that account's RID. This is not a problem when computer accounts are properly generated, but if a non-standard or legacy default password is set this tool allows you to brute-force those offline.
 
 Three scripts are included:
