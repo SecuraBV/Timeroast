@@ -90,6 +90,7 @@ Or customize CPU cores:
 ```bash
 python3 timecrack.py hashes.txt /usr/share/wordlists/rockyou.txt --workers 8
 ```
+![image](https://github.com/user-attachments/assets/fbb58163-61db-4e32-9d23-8c8b3cec5b45)
 
 #### 🧠 Author of Optimizations:
 
