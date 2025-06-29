@@ -42,6 +42,7 @@ Computer spraying and Kerberoasting can easily be carried out with existing tool
 
 - `extra-scripts/kirbi_to_hashcat.py`: converts a Kerberos ticket (referal/trust, service, ticket-granting, etc.) that is encoded as a base64 KRB_CRED structure into Hashcat format. Hash types 13100, 19600, 19700 (i.e. RC-4 and AES tickets) are supported.
 
+---
 
 Credits
 -------
@@ -51,3 +52,45 @@ The attack and original script were developed by Tom Tervoort of Secura BV.
 The Powershell port was contributed by [Jacopo Scannella](https://github.com/antipatico).
 
 Special thanks to [Garret Foster](https://www.optiv.com/blog/author/garrett-foster) for pointing out that Timeroasting can also be used to obtain trust account hashes.
+
+---
+
+### 🔧 Enhancements by B4l3rI0n
+
+Several improvements were made to `extra-scripts/timecrack.py` to significantly improve usability and performance:
+
+#### ✅ UnicodeDecodeError Fix for rockyou.txt
+
+The original script crashed when using non-UTF-8 encoded dictionaries such as `rockyou.txt`.
+I fixed this by opening the dictionary file using the `latin-1` encoding to support special characters:
+
+```python
+open('rockyou.txt', 'r', encoding='latin-1')
+```
+
+#### 🚀 Performance Optimization: Multicore Cracking
+
+The original `timecrack.py` used a naive nested loop, which was very slow for large wordlists.
+I rewrote the script to use **Python’s multiprocessing module**, utilizing all available CPU cores to crack hashes in parallel. This dramatically increases performance, especially with large lists like `rockyou.txt`.
+
+Key features:
+
+* Parallel cracking of each hash using `multiprocessing.Pool`
+* Automatically uses all available cores (`--workers` flag customizable)
+* Automatically skips to the next hash once a password match is found
+
+Usage:
+
+```bash
+python3 timecrack.py hashes.txt /usr/share/wordlists/rockyou.txt
+```
+
+Or customize CPU cores:
+
+```bash
+python3 timecrack.py hashes.txt /usr/share/wordlists/rockyou.txt --workers 8
+```
+
+#### 🧠 Author of Optimizations:
+
+Contributed by [B4l3rI0n](https://github.com/B4l3rI0n)
