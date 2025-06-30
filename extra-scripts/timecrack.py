@@ -57,7 +57,7 @@ passwords that are popular in an organisation.
 """)
 
   argparser.add_argument('hashes', type=FileType('r'), help='Output of timeroast.py')
-  argparser.add_argument('dictionary', type=FileType('r'), help='Line-delimited password dictionary')
+  argparser.add_argument('dictionary', type=FileType('r', encoding='latin-1'), help='Line-delimited password dictionary')
   args = argparser.parse_args()
 
   crackcount = 0
