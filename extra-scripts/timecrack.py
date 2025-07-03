@@ -56,18 +56,28 @@ passwords (where the password is the computer name) or specific default
 passwords that are popular in an organisation.
 """)
 
+  # Keep hash file as FileType since it's less likely to have encoding issues
   argparser.add_argument('hashes', type=FileType('r'), help='Output of timeroast.py')
-  argparser.add_argument('dictionary', type=FileType('r'), help='Line-delimited password dictionary')
+  # Change dictionary to just take the filename as a string
+  argparser.add_argument('dictionary', type=str, help='Line-delimited password dictionary')
   args = argparser.parse_args()
 
   crackcount = 0
-  for rid, password in try_crack(args.hashes, args.dictionary):
-    print(f'[+] Cracked RID {rid} password: {password}')
-    crackcount += 1
+  
+  # Open the dictionary file with proper encoding and error handling
+  try:
+    with open(args.dictionary, 'r', encoding='utf-8', errors='ignore') as dictfile:
+      for rid, password in try_crack(args.hashes, dictfile):
+        print(f'[+] Cracked RID {rid} password: {password}')
+        crackcount += 1
+  except FileNotFoundError:
+    print(f'ERROR: Dictionary file not found: {args.dictionary}', file=sys.stderr)
+    sys.exit(1)
+  except IOError as e:
+    print(f'ERROR: Could not read dictionary file: {e}', file=sys.stderr)
+    sys.exit(1)
 
   print(f'\n{crackcount} passwords recovered.')
 
 if __name__ == '__main__':
   main()
-
-
